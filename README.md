@@ -234,3 +234,114 @@ The `train_matrix_factorization` function uses the `matrix_factorization_step` f
 - **SGD-Based Learning**: The model is trained using stochastic gradient descent, updating `P` and `Q` in a way that minimizes the reconstruction error of the original matrix `R`.
 - **Regularization**: The inclusion of the regularization parameter `beta` helps prevent overfitting by penalizing overly complex models.
 - **Evaluation and Logging**: The model's performance is periodically evaluated on the training and test sets, with results logged for analysis. This allows monitoring of both convergence and generalization.
+
+### Collaborative Filtering Functions Explanation
+
+#### 1. **`calculate_similarity(matrix)`**
+
+```python
+def calculate_similarity(matrix):
+    return cosine_similarity(matrix)
+```
+
+##### Purpose
+This function computes the similarity between users (or items) in the `matrix` using cosine similarity. Cosine similarity is a metric used to measure how similar two vectors are, based on the angle between them.
+
+##### Workflow
+- **Input**: 
+  - `matrix`: Typically, this matrix is the user-item interaction matrix where rows represent users and columns represent items. Each element represents the rating given by a user to an item.
+  
+- **Process**:
+  - The function computes the cosine similarity between each pair of rows (users) in the matrix. This results in a user-user similarity matrix, where each element `[i, j]` represents the cosine similarity between user `i` and user `j`.
+
+- **Output**:
+  - A square matrix of size `num_users x num_users` containing the pairwise cosine similarity between users.
+
+##### Cosine Similarity
+- Cosine similarity is calculated as:
+  \[
+  \text{similarity} = \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|}
+  \]
+  where `A` and `B` are vectors representing two users' ratings, and `θ` is the angle between them.
+
+#### 2. **`predict_ratings(user_similarity, ratings_matrix)`**
+
+```python
+def predict_ratings(user_similarity, ratings_matrix):
+    user_mean = np.mean(ratings_matrix, axis=1).reshape(-1, 1)
+    ratings_diff = ratings_matrix - user_mean
+    pred = user_mean + user_similarity.dot(ratings_diff) / np.array([np.abs(user_similarity).sum(axis=1)]).T
+    return pred
+```
+
+##### Purpose
+This function predicts the ratings that each user would give to items they have not yet rated, based on the ratings of similar users.
+
+##### Workflow
+- **Input**:
+  - `user_similarity`: The user-user similarity matrix calculated by `calculate_similarity`.
+  - `ratings_matrix`: The original user-item ratings matrix.
+
+- **Process**:
+  - **User Mean Calculation**: 
+    - `user_mean`: The mean rating given by each user, calculated across all the items they have rated. This is necessary to normalize the ratings.
+  
+  - **Difference from Mean**: 
+    - `ratings_diff`: The difference between the actual ratings and the user's mean rating. This normalization helps in capturing the relative preference of a user for an item, independent of their rating scale.
+  
+  - **Prediction Calculation**:
+    - The predicted rating for each user-item pair is calculated by:
+      \[
+      \text{pred} = \text{user\_mean} + \frac{\text{user\_similarity} \cdot \text{ratings\_diff}}{\sum \text{abs(user\_similarity)}}
+      \]
+    - This formula combines the normalized ratings of similar users, weighted by their similarity, and adds back the user's mean rating.
+
+- **Output**:
+  - `pred`: A matrix of predicted ratings for all users and items.
+
+#### 3. **`train_collaborative_filtering(train_matrix, test_matrix, log_file, eval_interval)`**
+
+```python
+def train_collaborative_filtering(train_matrix, test_matrix, log_file, eval_interval):
+    user_similarity = calculate_similarity(train_matrix)
+    
+    with open(log_file, "w") as log:
+        for step in range(1, eval_interval + 1):
+            predictions = predict_ratings(user_similarity, train_matrix)
+            train_rmse = calculate_rmse(predictions, train_matrix)
+            test_rmse = calculate_rmse(predictions, test_matrix)
+            log.write(f"{step},{train_rmse:.4f},{test_rmse:.4f}\n")
+            log.flush()
+    return predictions
+```
+
+##### Purpose
+This function trains a collaborative filtering model using user-user similarity. It evaluates the model periodically and logs the RMSE for both the training and test datasets.
+
+##### Workflow
+- **Input**:
+  - `train_matrix`: The training user-item rating matrix.
+  - `test_matrix`: The test user-item rating matrix.
+  - `log_file`: The file where the training and test RMSE will be logged.
+  - `eval_interval`: The number of steps between evaluations.
+
+- **Process**:
+  - **Similarity Calculation**: 
+    - `user_similarity`: Compute the similarity between users using the `calculate_similarity` function.
+  
+  - **Training Loop**:
+    - The model predicts ratings using `predict_ratings`.
+    - The predicted ratings are evaluated against the actual ratings in both the training and test matrices using RMSE, which is logged every `eval_interval` steps.
+
+- **Output**:
+  - The function returns the final predicted ratings after training.
+
+##### Key Points
+- **User-User Collaborative Filtering**:
+  - The method uses the ratings of similar users to predict ratings for each user.
+  - It assumes that users with similar past ratings will continue to rate items similarly in the future.
+  
+- **RMSE Logging**:
+  - The model's performance is logged in terms of RMSE on both training and test data, providing insight into how well the model is generalizing.
+
+In summary, these functions together implement a user-user collaborative filtering recommendation system, where the similarity between users is used to predict how a user might rate an item they haven't rated yet. The training process involves calculating these similarities, making predictions, and then logging the performance to monitor the model's accuracy.
