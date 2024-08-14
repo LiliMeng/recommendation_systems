@@ -342,3 +342,123 @@ This function trains a collaborative filtering model using user-user similarity.
   - The model's performance is logged in terms of RMSE on both training and test data, providing insight into how well the model is generalizing.
 
 In summary, these functions together implement a user-user collaborative filtering recommendation system, where the similarity between users is used to predict how a user might rate an item they haven't rated yet. The training process involves calculating these similarities, making predictions, and then logging the performance to monitor the model's accuracy.
+
+## GNN Model code explanation
+The provided GNN (Graph Neural Network) code implements a recommendation system using a graph-based approach to model user-item interactions. Here's an explanation of the main components:
+
+### 1. **GNNRecommendationModel Class**
+
+```python
+class GNNRecommendationModel(nn.Module):
+    def __init__(self, num_users, num_items, embedding_dim):
+        super(GNNRecommendationModel, self).__init__()
+        self.user_embedding = nn.Embedding(num_users, embedding_dim)
+        self.item_embedding = nn.Embedding(num_items, embedding_dim)
+        self.gcn1 = GCNConv(embedding_dim, embedding_dim)
+        self.gcn2 = GCNConv(embedding_dim, embedding_dim)
+    
+    def forward(self, edge_index):
+        x = torch.cat([self.user_embedding.weight, self.item_embedding.weight], dim=0)
+        x = self.gcn1(x, edge_index)
+        x = torch.relu(x)
+        x = self.gcn2(x, edge_index)
+        return x
+```
+
+#### Explanation:
+
+- **`__init__` Method**:
+  - **Parameters**:
+    - `num_users`: The number of unique users in the dataset.
+    - `num_items`: The number of unique items (e.g., movies) in the dataset.
+    - `embedding_dim`: The size of the embedding vectors for both users and items.
+  - **Embedding Layers**:
+    - `user_embedding`: An embedding layer that maps each user to a dense vector of size `embedding_dim`.
+    - `item_embedding`: An embedding layer that maps each item to a dense vector of size `embedding_dim`.
+  - **GCN Layers**:
+    - `gcn1`: A Graph Convolutional Network (GCN) layer that processes the initial embeddings.
+    - `gcn2`: A second GCN layer that further processes the output of `gcn1`.
+
+- **`forward` Method**:
+  - **`edge_index`**: A tensor that defines the edges in the user-item graph. Each edge connects a user node to an item node, representing a rating interaction.
+  - **Embedding Concatenation**:
+    - The embeddings for users and items are concatenated into a single matrix `x`, where the first `num_users` rows correspond to user embeddings, and the remaining rows correspond to item embeddings.
+  - **GCN Layers**:
+    - The concatenated embeddings are passed through the two GCN layers. The first GCN layer transforms the embeddings, and ReLU is applied to introduce non-linearity. The second GCN layer refines the embeddings based on the graph structure.
+  - **Output**: The final embeddings for users and items, after being processed by the GCN layers.
+
+### 2. **train_gnn Function**
+
+```python
+def train_gnn(train_matrix, test_matrix, log_file, eval_interval, num_epochs=100, embedding_dim=16, learning_rate=0.01):
+    num_users, num_items = train_matrix.shape
+    num_nodes = num_users + num_items
+    
+    edge_index = []
+    edge_attr = []
+    for i in range(num_users):
+        for j in range(num_items):
+            if train_matrix[i, j] > 0:
+                edge_index.append([i, num_users + j])
+                edge_index.append([num_users + j, i])
+                edge_attr.append(train_matrix[i, j])
+                edge_attr.append(train_matrix[i, j])
+    
+    edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float)
+    
+    model = GNNRecommendationModel(num_users, num_items, embedding_dim)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    loss_fn = nn.MSELoss()
+    
+    with open(log_file, "w") as log:
+        for epoch in range(num_epochs):
+            model.train()
+            optimizer.zero_grad()
+            embeddings = model(edge_index)
+            user_embeds = embeddings[:num_users]
+            item_embeds = embeddings[num_users:]
+            predictions = torch.matmul(user_embeds, item_embeds.t())
+            mask = torch.tensor(train_matrix > 0, dtype=torch.bool)
+            loss = loss_fn(predictions[mask], torch.tensor(train_matrix[mask], dtype=torch.float))
+            loss.backward()
+            optimizer.step()
+
+            if (epoch + 1) % eval_interval == 0:
+                train_rmse = calculate_rmse(predictions.detach().numpy(), train_matrix)
+                test_rmse = calculate_rmse(predictions.detach().numpy(), test_matrix)
+                log.write(f"{epoch + 1},{train_rmse:.4f},{test_rmse:.4f}\n")
+                log.flush()
+    
+    return model
+```
+
+#### Explanation:
+
+- **Setting Up the Graph**:
+  - **`edge_index` and `edge_attr`**:
+    - `edge_index`: Stores pairs of connected nodes (user-item interactions) in the graph. Each user is connected to the items they have rated, and vice versa.
+    - `edge_attr`: Stores the actual rating values as edge attributes, though they are not directly used in the GCN model.
+
+- **Model and Optimizer**:
+  - **`model`**: An instance of `GNNRecommendationModel`.
+  - **`optimizer`**: Uses Adam optimizer for updating the model parameters based on the gradients.
+  - **`loss_fn`**: Mean Squared Error (MSE) loss function is used to measure the difference between predicted and actual ratings.
+
+- **Training Loop**:
+  - **Embeddings Calculation**: The model's `forward` method computes embeddings for users and items based on the graph structure.
+  - **Prediction**: Predicted ratings are computed by taking the dot product of user and item embeddings.
+  - **Loss Calculation**: The MSE loss between the predicted and actual ratings is computed only for the user-item pairs that exist in the training data (using a mask).
+  - **Backward Pass and Optimization**: Gradients are calculated and used to update the model parameters.
+  - **Evaluation**: Every `eval_interval` epochs, the model's performance is evaluated on both the training and test datasets using RMSE, and results are logged.
+
+- **Return**: The trained model is returned after the training process is complete.
+
+### Key Points
+
+- **Graph-Based Learning**: The GNN model leverages the graph structure of user-item interactions, which is represented as edges between user and item nodes. This allows the model to capture complex relationships and dependencies in the data.
+- **Two-Stage Convolution**: The GCN layers iteratively refine the embeddings by aggregating information from neighboring nodes (i.e., users aggregate information from items they have rated and vice versa).
+- **Embedding Sharing**: User and item embeddings are learned jointly in a single embedding space, allowing the model to effectively capture interactions between users and items.
+- **Flexibility**: The model can be trained for a specified number of epochs, and the dimensionality of embeddings can be configured.
+
+This GNN-based recommendation approach is particularly powerful because it directly incorporates the user-item interaction graph into the learning process, allowing the model to better capture the underlying structure of the data.
