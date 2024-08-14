@@ -290,11 +290,8 @@ This function predicts the ratings that each user would give to items they have 
     - `ratings_diff`: The difference between the actual ratings and the user's mean rating. This normalization helps in capturing the relative preference of a user for an item, independent of their rating scale.
   
   - **Prediction Calculation**:
-    - The predicted rating for each user-item pair is calculated by:
-      \[
-      \text{pred} = \text{user\_mean} + \frac{\text{user\_similarity} \cdot \text{ratings\_diff}}{\sum \text{abs(user\_similarity)}}
-      \]
-    - This formula combines the normalized ratings of similar users, weighted by their similarity, and adds back the user's mean rating.
+    <img width="628" alt="Screenshot 2024-08-14 at 3 46 04 PM" src="https://github.com/user-attachments/assets/05bd1180-62a8-495c-9e8c-3750ac609978">
+
 
 - **Output**:
   - `pred`: A matrix of predicted ratings for all users and items.
