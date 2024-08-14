@@ -103,3 +103,42 @@ You can run the models by executing the `main.py` script and selecting the desir
 ## Conclusion
 
 This project provides a flexible framework to experiment with different recommendation models using the MovieLens 100K dataset. By separating the models into distinct modules, the code is modular and easy to extend. The main script offers a unified interface to run and evaluate any of the models, making it a valuable tool for understanding and developing recommendation systems.
+
+### Bash File Explanation
+
+1. **Log Directories**:
+   - The script creates separate directories for logs (`logs/matrix_factorization`, `logs/collaborative_filtering`, and `logs/gnn`).
+
+2. **Matrix Factorization**:
+   - The script sets the parameters for matrix factorization, such as `K`, `steps`, `alpha`, and `beta`.
+   - The log file is named based on these parameters (e.g., `mf_K30_steps1000_alpha0.001_beta0.01.txt`).
+
+3. **Collaborative Filtering**:
+   - The script sets parameters for collaborative filtering.
+   - The log file is named based on the evaluation interval (e.g., `cf_eval_interval10.txt`).
+
+4. **GNN**:
+   - The script sets parameters for the GNN model, such as `embedding_dim` and `num_epochs`.
+   - The log file is named based on these parameters (e.g., `gnn_embedding_dim16_epochs100.txt`).
+
+5. **Running the Script**:
+   - The script runs each model with the specified parameters and stores the logs in their respective folders.
+
+### How to Use the Bash Script
+
+1. **Save the Script**:
+   - Save the script as `run_models.sh` in the root directory of your project.
+
+2. **Make the Script Executable**:
+   - Run the following command to make the script executable:
+     ```bash
+     chmod +x run_models.sh
+     ```
+
+3. **Execute the Script**:
+   - Run the script with:
+     ```bash
+     ./run_models.sh
+     ```
+
+This script will run each model with the specified parameters, generate logs with descriptive filenames, and organize them into appropriate folders.
