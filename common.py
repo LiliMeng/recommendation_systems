@@ -8,7 +8,7 @@ def calculate_rmse(pred, actual):
     mask = actual > 0
     return np.sqrt(np.sum((pred[mask] - actual[mask]) ** 2) / np.sum(mask))
 
-def plot_training_log(log_file):
+def plot_training_log(log_file, plot_file):
     epochs = []
     train_rmse = []
     test_rmse = []
@@ -28,8 +28,9 @@ def plot_training_log(log_file):
     plt.title("Training and Evaluation RMSE over Epochs")
     plt.legend()
     plt.grid(True)
-    plt.savefig("training_evaluation_curve.png")
+    plt.savefig(plot_file)  # Save the plot with the provided filename
     plt.show()
+
 
 def load_movielens_data():
     url = 'https://files.grouplens.org/datasets/movielens/ml-100k/u.data'
