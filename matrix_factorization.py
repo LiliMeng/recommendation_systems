@@ -1,5 +1,6 @@
 # matrix_factorization.py
 from common import calculate_rmse
+import numpy as np
 
 def matrix_factorization_step(R, P, Q, K, alpha, beta):
     Q = Q.T
