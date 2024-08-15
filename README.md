@@ -258,11 +258,8 @@ This function computes the similarity between users (or items) in the `matrix` u
   - A square matrix of size `num_users x num_users` containing the pairwise cosine similarity between users.
 
 ##### Cosine Similarity
-- Cosine similarity is calculated as:
-  \[
-  \text{similarity} = \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|}
-  \]
-  where `A` and `B` are vectors representing two users' ratings, and `θ` is the angle between them.
+<img width="713" alt="Screenshot 2024-08-15 at 10 18 03 AM" src="https://github.com/user-attachments/assets/bc752a82-77b6-432a-ae79-366192e37b64">
+
 
 #### 2. **`predict_ratings(user_similarity, ratings_matrix)`**
 
