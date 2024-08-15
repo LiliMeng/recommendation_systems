@@ -1,4 +1,5 @@
 # collaborative_filtering.py
+import numpy as np
 from common import calculate_rmse
 from sklearn.metrics.pairwise import cosine_similarity
 
